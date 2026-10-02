@@ -1,0 +1,18 @@
+name = "karmic-apothecary"
+main = ".open-next/worker.js"
+compatibility_date = "2026-10-02"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "karmic-apothecary"
+
+[vars]
+NEXT_PUBLIC_PAYPAL_CLIENT_ID = "Aa4oeripY62iYIvlcXJtFzeaOuQ0r_ObTgbYSrnAq6X3IPKLOyUNyzqr3ZNZFCNHKv98hzBkok3Xs1y8"
+NEXT_PUBLIC_APP_URL = "http://localhost:3000"
+PAYPAL_MODE = "live"
+ADMIN_EMAIL = "1sierra.duck@gmail.com"
