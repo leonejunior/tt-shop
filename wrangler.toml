@@ -16,3 +16,8 @@ NEXT_PUBLIC_PAYPAL_CLIENT_ID = "Aa4oeripY62iYIvlcXJtFzeaOuQ0r_ObTgbYSrnAq6X3IPKL
 NEXT_PUBLIC_APP_URL = "http://localhost:3000"
 PAYPAL_MODE = "live"
 ADMIN_EMAIL = "1sierra.duck@gmail.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tt-shop-db"
+database_id = "221f61ba-5302-4327-99e1-d51c01200e13"

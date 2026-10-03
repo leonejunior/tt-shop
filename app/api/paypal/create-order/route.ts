@@ -3,7 +3,7 @@ import { createPayPalOrder } from "@/lib/paypal";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as { readingSlug?: string };
     const { readingSlug } = body;
 
     if (!readingSlug) {

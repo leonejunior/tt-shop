@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, escapeHtml } from "@/lib/email";
+import { storeContactSubmission, logEmailAudit } from "@/lib/db";
 
 interface ContactFormData {
   name: string;
@@ -10,6 +11,9 @@ interface ContactFormData {
 // Generate HTML email template for admin contact form
 function generateContactEmailHTML(formData: ContactFormData): string {
   const currentYear = new Date().getFullYear();
+  const safeName = escapeHtml(formData.name);
+  const safeEmail = escapeHtml(formData.email);
+  const safeMessage = escapeHtml(formData.message);
 
   return `
 <!DOCTYPE html>
@@ -123,11 +127,11 @@ function generateContactEmailHTML(formData: ContactFormData): string {
         <div class="details">
           <div class="details-row">
             <span class="details-label">👤 Name:</span>
-            <span class="details-value">${formData.name}</span>
+            <span class="details-value">${safeName}</span>
           </div>
           <div class="details-row">
             <span class="details-label">📧 Email:</span>
-            <span class="details-value">${formData.email}</span>
+            <span class="details-value">${safeEmail}</span>
           </div>
           <div class="details-row">
             <span class="details-label">📅 Submitted:</span>
@@ -137,13 +141,14 @@ function generateContactEmailHTML(formData: ContactFormData): string {
         
         <div class="message-box">
           <strong>💬 Message:</strong>
-          <p>${formData.message.replace(/\n/g, "<br>")}</p>
+          <p style="white-space: pre-wrap;">${safeMessage}</p>
         </div>
         
-        <div style="text-align: center; margin-top: 32px;">
-          <p style="color: #6b7280; font-size: 14px;">
-            Reply directly to this email to respond to ${formData.name}.
-          </p>
+        <div style="margin-top: 24px; text-align: center;">
+          <a href="mailto:${safeEmail}?subject=Re:%20Your%20message%20to%20Karma's%20Apothecary" 
+             style="display: inline-block; background: #5e3a6b; color: white; padding: 10px 20px; border-radius: 9999px; text-decoration: none; font-size: 14px; font-weight: 500;">
+            Reply to ${safeName}
+          </a>
         </div>
       </div>
       
@@ -157,9 +162,10 @@ function generateContactEmailHTML(formData: ContactFormData): string {
   `;
 }
 
-// Generate auto-reply email for customer
+// Generate auto-reply HTML email for customer
 function generateAutoReplyHTML(name: string): string {
   const currentYear = new Date().getFullYear();
+  const safeName = escapeHtml(name);
 
   return `
 <!DOCTYPE html>
@@ -167,7 +173,7 @@ function generateAutoReplyHTML(name: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thank You for Contacting Me</title>
+  <title>Thank You for Contacting Karma's Apothecary</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -225,7 +231,7 @@ function generateAutoReplyHTML(name: string): string {
       
       <div class="content">
         <div class="message">
-          <p>Hi ${name},</p>
+          <p>Hi ${safeName},</p>
           <p>Thank you for contacting me. I've received your message and will get back to you within 24-48 hours.</p>
           <p>If your matter is urgent, please feel free to DM me on Instagram or TikTok for a faster response.</p>
           <p>I look forward to connecting with you soon!</p>
@@ -248,7 +254,11 @@ function generateAutoReplyHTML(name: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { name, email, message } = await request.json();
+    const { name, email, message } = (await request.json()) as {
+      name?: string;
+      email?: string;
+      message?: string;
+    };
 
     // Validate required fields
     if (!name || !email || !message) {
@@ -258,29 +268,79 @@ export async function POST(request: Request) {
       );
     }
 
-    const formData = { name, email, message };
+    const cleanName = String(name).trim();
+    const cleanEmail = String(email).trim();
+    const cleanMessage = String(message).trim();
 
-    // Send email to admin
-    const adminHtml = generateContactEmailHTML(formData);
-    await sendEmail({
-      to: process.env.ADMIN_EMAIL || "your-email@gmail.com",
-      subject: `📬 New Contact Form Message from ${name}`,
-      html: adminHtml,
+    // 1. Always persist to Cloudflare D1 first so messages are never lost
+    await storeContactSubmission({
+      name: cleanName,
+      email: cleanEmail,
+      message: cleanMessage,
     });
 
-    // Send auto-reply to customer
-    const autoReplyHtml = generateAutoReplyHTML(name);
-    await sendEmail({
-      to: email,
-      subject: "Thank You for Contacting Karma's Apothecary ✨",
-      html: autoReplyHtml,
-    });
+    const formData = { name: cleanName, email: cleanEmail, message: cleanMessage };
+
+    // 2. Send email to admin & log
+    const adminEmail = process.env.ADMIN_EMAIL || "1sierra.duck@gmail.com";
+    const adminSubject = `📬 New Contact Form Message from ${cleanName}`;
+    try {
+      const adminHtml = generateContactEmailHTML(formData);
+      await sendEmail({
+        to: adminEmail,
+        subject: adminSubject,
+        html: adminHtml,
+      });
+
+      await logEmailAudit({
+        recipient: adminEmail,
+        type: "contact_form",
+        subject: adminSubject,
+        status: "sent",
+      });
+    } catch (adminErr) {
+      console.error("Failed to notify admin of contact submission:", adminErr);
+      await logEmailAudit({
+        recipient: adminEmail,
+        type: "contact_form",
+        subject: adminSubject,
+        status: "failed",
+        errorMessage: adminErr instanceof Error ? adminErr.message : "Unknown error",
+      });
+    }
+
+    // 3. Send auto-reply to customer & log
+    const autoReplySubject = "Thank You for Contacting Karma's Apothecary ✨";
+    try {
+      const autoReplyHtml = generateAutoReplyHTML(cleanName);
+      await sendEmail({
+        to: cleanEmail,
+        subject: autoReplySubject,
+        html: autoReplyHtml,
+      });
+
+      await logEmailAudit({
+        recipient: cleanEmail,
+        type: "contact_form",
+        subject: autoReplySubject,
+        status: "sent",
+      });
+    } catch (custErr) {
+      console.error("Failed to send auto-reply to customer:", custErr);
+      await logEmailAudit({
+        recipient: cleanEmail,
+        type: "contact_form",
+        subject: autoReplySubject,
+        status: "failed",
+        errorMessage: custErr instanceof Error ? custErr.message : "Unknown error",
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Contact form email sending error:", error);
+    console.error("Contact form error:", error);
     return NextResponse.json(
-      { error: "Failed to send message" },
+      { error: "Failed to process message" },
       { status: 500 },
     );
   }

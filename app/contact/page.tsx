@@ -29,25 +29,19 @@ export default function ContactPage() {
         body: JSON.stringify(formState),
       });
 
-      console.log("Response status:", response.status);
-
       if (!response.ok) {
-        // Try to get error message from response
         let errorMessage = "Failed to send message";
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          // If response is not JSON, get text
+          const errorData = (await response.json()) as any;
+          errorMessage = errorData?.error || errorMessage;
+        } catch {
           const text = await response.text();
-          console.error("Non-JSON response:", text);
-          errorMessage = `Server error: ${response.status}`;
+          errorMessage = text || `Server error: ${response.status}`;
         }
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      console.log("Success response:", data);
+      await response.json();
       setIsSubmitted(true);
     } catch (err) {
       console.error("Error sending message:", err);

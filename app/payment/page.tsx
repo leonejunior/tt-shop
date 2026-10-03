@@ -291,7 +291,7 @@ function PaymentPageContent() {
                                 readingSlug: verifiedReading.slug,
                               }),
                             });
-                            const data = await res.json();
+                            const data = (await res.json()) as any;
                             if (!res.ok || !data.orderId) {
                               throw new Error(
                                 data.error || "Failed to initialize secure order.",
@@ -326,7 +326,7 @@ function PaymentPageContent() {
                               }),
                             });
 
-                            const captureResult = await res.json();
+                            const captureResult = (await res.json()) as any;
                             if (!res.ok || !captureResult.success) {
                               throw new Error(
                                 captureResult.error || "Payment verification failed",
@@ -349,7 +349,7 @@ function PaymentPageContent() {
                             );
 
                             router.push(
-                              `/confirmation?reading=${verifiedReading.slug}`,
+                              `/confirmation?reading=${verifiedReading.slug}&txn=${captureResult.transactionId}`,
                             );
                           } catch (err) {
                             console.error("Payment capture error:", err);

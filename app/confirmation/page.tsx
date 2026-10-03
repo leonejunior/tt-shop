@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Calendar, Mail, Home, AlertCircle } from "lucide-react";
+import { CheckCircle2, Calendar, Mail, Home, AlertCircle, Loader2 } from "lucide-react";
 
 interface ScheduleDetails {
-  date: string;
-  time: string;
+  date?: string;
+  time?: string;
   formattedDate: string;
   formattedTime: string;
 }
@@ -31,12 +31,55 @@ interface BookingConfirmation {
 function ConfirmationPageContent() {
   const searchParams = useSearchParams();
   const readingSlug = searchParams.get("reading");
+  const txn = searchParams.get("txn");
 
-  const [bookingDetails] = useState<BookingConfirmation | null>(() => {
+  const [bookingDetails, setBookingDetails] = useState<BookingConfirmation | null>(() => {
     if (typeof window === "undefined") return null;
     const stored = sessionStorage.getItem("bookingConfirmation");
     return stored ? (JSON.parse(stored) as BookingConfirmation) : null;
   });
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  // If sessionStorage is empty (e.g. page refreshed or opened in new tab), look up from Cloudflare D1
+  useEffect(() => {
+    if (!bookingDetails && txn) {
+      setIsLoading(true);
+      fetch(`/api/orders/lookup?txn=${encodeURIComponent(txn)}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Order not found");
+          return res.json() as Promise<any>;
+        })
+        .then((data: any) => {
+          if (data.order) {
+            setBookingDetails(data.order);
+            sessionStorage.setItem("bookingConfirmation", JSON.stringify(data.order));
+          }
+        })
+        .catch((err) => {
+          console.error("Order lookup error:", err);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  }, [bookingDetails, txn]);
+
+  if (isLoading) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-background p-12">
+          <Loader2 size={36} className="animate-spin text-primary" />
+          <h1 className="mt-4 text-xl font-semibold text-foreground">
+            Loading your booking confirmation...
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Retrieving verified order from database
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (!bookingDetails) {
     return (
@@ -45,9 +88,12 @@ function ConfirmationPageContent() {
           <h1 className="text-2xl font-bold text-foreground">
             No booking found
           </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We couldn&apos;t find an active booking session. If you recently completed a payment, please check your email for your confirmation receipt.
+          </p>
           <Link
             href="/readings"
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
           >
             Browse Readings
           </Link>
@@ -68,17 +114,14 @@ function ConfirmationPageContent() {
         </h1>
 
         <p className="mt-2 text-muted-foreground">
-          Your {bookingDetails.readingName} has been successfully booked.
+          Your {bookingDetails.readingName} has been successfully booked and recorded.
         </p>
 
         {bookingDetails.paymentMethod && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Paid via{" "}
-            {bookingDetails.paymentMethod === "stripe"
-              ? "credit card"
-              : "PayPal"}
+            Paid via PayPal
             {bookingDetails.transactionId &&
-              ` • Transaction ID: ${bookingDetails.transactionId.slice(-8)}`}
+              ` • Transaction ID: ${bookingDetails.transactionId}`}
           </p>
         )}
 
@@ -89,12 +132,12 @@ function ConfirmationPageContent() {
 
           <div className="space-y-3 text-sm">
             <div className="flex items-start gap-3">
-              <Mail size={18} className="mt-0.5 text-primary" />
+              <Mail size={18} className="mt-0.5 text-primary shrink-0" />
               <div>
                 <p className="font-medium text-foreground">Check your email</p>
                 <p className="text-muted-foreground">
                   A confirmation has been sent to{" "}
-                  <span className="text-foreground">
+                  <span className="text-foreground font-medium">
                     {bookingDetails.email}
                   </span>
                 </p>
@@ -105,9 +148,9 @@ function ConfirmationPageContent() {
                     don&apos;t see the email in your inbox within a few minutes,
                     please check your{" "}
                     <span className="font-medium">spam or junk folder</span>.
-                    Sometimes our messages like to hide there! Adding
-                    hello@karmasapothecary.com to your contacts helps ensure
-                    future emails land in your inbox.
+                    Adding{" "}
+                    <span className="font-medium font-mono">karmicapothecary@gmail.com</span> to
+                    your contacts helps ensure future emails land in your inbox.
                   </p>
                 </div>
               </div>
@@ -115,7 +158,7 @@ function ConfirmationPageContent() {
 
             {bookingDetails.schedule ? (
               <div className="flex items-start gap-3">
-                <Calendar size={18} className="mt-0.5 text-primary" />
+                <Calendar size={18} className="mt-0.5 text-primary shrink-0" />
                 <div>
                   <p className="font-medium text-foreground">
                     Your session is scheduled
@@ -131,7 +174,7 @@ function ConfirmationPageContent() {
               </div>
             ) : (
               <div className="flex items-start gap-3">
-                <Calendar size={18} className="mt-0.5 text-primary" />
+                <Calendar size={18} className="mt-0.5 text-primary shrink-0" />
                 <div>
                   <p className="font-medium text-foreground">
                     Your reading is in progress
