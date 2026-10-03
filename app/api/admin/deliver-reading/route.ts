@@ -8,13 +8,14 @@ import {
   updateOrderStatus,
   logEmailAudit,
 } from "@/lib/db";
+import { getClientIp, checkRateLimit, constantTimeEqual } from "@/lib/rate-limit";
 
 /** Validate the admin secret from the Authorization header */
 function isAuthorized(request: Request): boolean {
   const secret = process.env.ADMIN_SECRET;
   if (!secret) return false;
   const authHeader = request.headers.get("Authorization") || "";
-  return authHeader === `Bearer ${secret}`;
+  return constantTimeEqual(authHeader, `Bearer ${secret}`);
 }
 
 /**
@@ -25,6 +26,19 @@ function isAuthorized(request: Request): boolean {
  * Protected by ADMIN_SECRET bearer token.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const ip = getClientIp(request);
+  const rateCheck = await checkRateLimit("admin-auth", ip, {
+    limit: 15,
+    windowSeconds: 300,
+  });
+
+  if (!rateCheck.success) {
+    return NextResponse.json(
+      { error: "Too many authentication attempts. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(rateCheck.resetInSeconds) } },
+    );
+  }
+
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -41,6 +55,14 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!orderId) {
       return NextResponse.json({ error: "orderId is required" }, { status: 400 });
+    }
+
+    // Validate delivery URL if provided
+    if (deliveryUrl && !/^https?:\/\//i.test(deliveryUrl.trim())) {
+      return NextResponse.json(
+        { error: "Delivery URL must be a valid HTTP or HTTPS web address." },
+        { status: 400 },
+      );
     }
 
     const order = await getOrderById(orderId);

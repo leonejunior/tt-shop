@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Lock,
   Package,
@@ -58,11 +58,6 @@ export default function AdminPage() {
   const [summaryText, setSummaryText] = useState("");
   const [keyThemes, setKeyThemes] = useState("");
 
-  // Auto-load orders once on first render if a stored secret was found
-  const hasFetched = useState(false);
-  const [, setHasFetched] = hasFetched;
-  const didFetch = hasFetched[0];
-
   const fetchOrders = useCallback(
     async (token: string) => {
       setLoading(true);
@@ -88,11 +83,42 @@ export default function AdminPage() {
     [],
   );
 
-  // Trigger once on mount (outside an effect) when secret is already known
-  if (secret && !didFetch) {
-    setHasFetched(true);
-    fetchOrders(secret);
-  }
+  // Auto-load orders once on mount if secret is already saved in session
+  useEffect(() => {
+    let active = true;
+    if (!secret) return;
+
+    const controller = new AbortController();
+    fetch("/api/admin/orders", {
+      headers: { Authorization: `Bearer ${secret}` },
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) {
+          if (res.status === 401 && active) {
+            setSecret("");
+            setLoginError("Invalid secret. Please try again.");
+          }
+          return null;
+        }
+        return res.json() as Promise<{ orders: Order[] }>;
+      })
+      .then((data) => {
+        if (active && data) {
+          setOrders(data.orders || []);
+        }
+      })
+      .catch((err) => {
+        if (active && err instanceof Error && err.name !== "AbortError") {
+          setLoginError("Failed to connect. Please try again.");
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [secret]);
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();

@@ -1,8 +1,31 @@
 import { NextResponse } from "next/server";
 import { getOrderByTransactionId } from "@/lib/db";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // Rate limit: 20 lookup attempts per 10 minutes per IP
+    const rateCheck = await checkRateLimit("order-lookup", ip, {
+      limit: 20,
+      windowSeconds: 600,
+    });
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: `Too many lookup requests. Please wait ${rateCheck.resetInSeconds} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.resetInSeconds),
+          },
+        },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const txn = searchParams.get("txn");
 

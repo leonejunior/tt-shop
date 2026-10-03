@@ -651,9 +651,16 @@ export async function sendEmail({
   subject: string;
   html: string;
 }): Promise<{ success: boolean }> {
-  const credentials = btoa(
-    `${process.env.MAILJET_API_KEY}:${process.env.MAILJET_SECRET_KEY}`,
-  );
+  const apiKey = process.env.MAILJET_API_KEY;
+  const secretKey = process.env.MAILJET_SECRET_KEY;
+
+  if (!apiKey || !secretKey) {
+    throw new Error(
+      "Mailjet API credentials (MAILJET_API_KEY / MAILJET_SECRET_KEY) are not configured.",
+    );
+  }
+
+  const credentials = btoa(`${apiKey}:${secretKey}`);
 
   const response = await fetch("https://api.mailjet.com/v3.1/send", {
     method: "POST",
