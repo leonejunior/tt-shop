@@ -145,7 +145,7 @@ function generateContactEmailHTML(formData: ContactFormData): string {
         </div>
         
         <div style="margin-top: 24px; text-align: center;">
-          <a href="mailto:${safeEmail}?subject=Re:%20Your%20message%20to%20Karma's%20Apothecary" 
+          <a href="mailto:${encodeURIComponent(formData.email)}?subject=Re:%20Your%20message%20to%20Karma's%20Apothecary" 
              style="display: inline-block; background: #5e3a6b; color: white; padding: 10px 20px; border-radius: 9999px; text-decoration: none; font-size: 14px; font-weight: 500;">
             Reply to ${safeName}
           </a>
