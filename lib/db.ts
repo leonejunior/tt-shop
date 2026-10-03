@@ -205,7 +205,7 @@ export async function logEmailAudit({
 }: {
   orderId?: string;
   recipient: string;
-  type: "customer_confirmation" | "admin_notification" | "contact_form";
+  type: "customer_confirmation" | "admin_notification" | "contact_form" | "reading_delivery" | "vip_summary" | "vip_reminder";
   subject: string;
   status: "sent" | "failed";
   errorMessage?: string;
@@ -387,4 +387,27 @@ export async function updateOrderStatus({
     .run();
 
   return true;
+}
+
+/**
+ * Get a single order by its internal ID, with joined customer and payment info
+ */
+export async function getOrderById(
+  orderId: string,
+): Promise<(OrderRecord & { customer_name: string; customer_email: string; transaction_id: string }) | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const row = await db
+    .prepare(
+      `SELECT o.*, c.name as customer_name, c.email as customer_email, p.provider_capture_id as transaction_id
+       FROM orders o
+       JOIN customers c ON o.customer_id = c.id
+       LEFT JOIN payments p ON p.order_id = o.id
+       WHERE o.id = ?`,
+    )
+    .bind(orderId)
+    .first<OrderRecord & { customer_name: string; customer_email: string; transaction_id: string }>();
+
+  return row ?? null;
 }

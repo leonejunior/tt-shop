@@ -21,7 +21,6 @@ export default function ContactPage() {
     setError("");
 
     try {
-      console.log("Sending to: /api/contact");
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {

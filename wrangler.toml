@@ -12,10 +12,19 @@ binding = "WORKER_SELF_REFERENCE"
 service = "karmic-apothecary"
 
 [vars]
+# PayPal (public client ID is safe to commit)
 NEXT_PUBLIC_PAYPAL_CLIENT_ID = "Aa4oeripY62iYIvlcXJtFzeaOuQ0r_ObTgbYSrnAq6X3IPKLOyUNyzqr3ZNZFCNHKv98hzBkok3Xs1y8"
-NEXT_PUBLIC_APP_URL = "http://localhost:3000"
 PAYPAL_MODE = "live"
+
+# Email: who gets admin/owner alerts
 ADMIN_EMAIL = "1sierra.duck@gmail.com"
+
+# Scheduling: Calendly link embedded in VIP emails
+CALENDLY_URL = "https://calendly.com/karmicapothecary/new-meeting"
+
+# App URL: update to your real Cloudflare Pages domain before deploying
+# e.g. "https://karmic-apothecary.pages.dev" or your custom domain
+NEXT_PUBLIC_APP_URL = "https://karmic-apothecary.pages.dev"
 
 [[d1_databases]]
 binding = "DB"
