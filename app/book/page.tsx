@@ -5,79 +5,9 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Sparkles,
-  Heart,
-  Compass,
-  Crown,
   ChevronRight,
 } from "lucide-react";
-
-type ReadingSlug =
-  | "the-glimpse"
-  | "heart-compass"
-  | "deep-dive"
-  | "vip-session";
-
-interface ReadingData {
-  name: string;
-  price: number;
-  icon: React.ElementType;
-  format: string;
-  deliveryTime: string;
-  questions: string;
-  questionHint: string;
-  showFormatSelector: boolean;
-}
-
-const readingsData: Record<ReadingSlug, ReadingData> = {
-  "the-glimpse": {
-    name: "The Glimpse",
-    price: 11.11,
-    icon: Sparkles,
-    format: "Voice Note",
-    deliveryTime: "24-48 hours",
-    questions: "2 questions",
-    questionHint:
-      "You can ask up to 2 questions. Keep them focused on one situation or topic for the clearest insight.",
-    showFormatSelector: false,
-  },
-  "heart-compass": {
-    name: "The Heart Compass",
-    price: 22.22,
-    icon: Heart,
-    format: "Voice Note",
-    deliveryTime: "24 hours",
-    questions: "3-4 related questions",
-    questionHint:
-      "Ask 3-4 related questions about your love situation. The more context you share, the clearer the reading.",
-    showFormatSelector: false,
-  },
-  "deep-dive": {
-    name: "The Deep Dive",
-    price: 44.44,
-    icon: Compass,
-    format: "Video Call or Written Report",
-    deliveryTime: "48 hours",
-    questions: "4-6 related questions",
-    questionHint:
-      "You can ask 4-6 related questions about your situation. Choose your preferred format below.",
-    showFormatSelector: true,
-  },
-  "vip-session": {
-    name: "The VIP Session",
-    price: 77.77,
-    icon: Crown,
-    format: "Video Call Only",
-    deliveryTime: "Scheduled",
-    questions: "Unlimited",
-    questionHint:
-      "Ask anything! After payment you'll receive a Calendly link to pick your preferred session date and time.",
-    showFormatSelector: false,
-  },
-};
-
-const isValidReadingSlug = (slug: string | null): slug is ReadingSlug =>
-  slug !== null && slug in readingsData;
+import { getReadingBySlug } from "@/lib/readings";
 
 // Component that uses useSearchParams
 function BookPageContent() {
@@ -85,9 +15,7 @@ function BookPageContent() {
   const searchParams = useSearchParams();
   const readingSlug = searchParams.get("reading");
 
-  const reading = isValidReadingSlug(readingSlug)
-    ? readingsData[readingSlug]
-    : readingsData["the-glimpse"];
+  const reading = getReadingBySlug(readingSlug);
 
   const [formData, setFormData] = useState({
     name: "",

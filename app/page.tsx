@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Sparkles, Heart, Compass, Crown } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { READINGS_LIST, READINGS_CATALOG } from "@/lib/readings";
 
 export default function Home() {
   return (
@@ -89,109 +90,74 @@ export default function Home() {
         </div>
 
         <div className="grid gap-5 md:gap-6 lg:gap-6 md:grid-cols-3">
-          {/* The Glimpse */}
-          <div className="rounded-xl border border-border bg-background p-5 transition-shadow hover:shadow-lg md:p-6">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary md:mb-4 md:h-12 md:w-12">
-              <Sparkles size={20} className="md:h-6 md:w-6" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground md:text-xl">
-              The Glimpse
-            </h3>
-            <p className="mt-1 text-xl font-bold text-primary md:text-2xl">
-              $11.11
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground md:text-sm">
-              2 burning questions. 5 cards. Clarity delivered within 24-48
-              hours. Your gentle introduction to tarot.
-            </p>
-            <Link
-              href="/readings/the-glimpse"
-              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline md:mt-4 md:text-sm"
-            >
-              Learn More
-              <ArrowRight size={12} className="md:h-3.5 md:w-3.5" />
-            </Link>
-          </div>
-
-          {/* The Heart Compass */}
-          <div className="rounded-xl border border-border bg-background p-5 transition-shadow hover:shadow-lg md:p-6">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary md:mb-4 md:h-12 md:w-12">
-              <Heart size={20} className="md:h-6 md:w-6" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground md:text-xl">
-              The Heart Compass
-            </h3>
-            <p className="mt-1 text-xl font-bold text-primary md:text-2xl">
-              $22.22
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground md:text-sm">
-              Love questions answered. 3-4 related questions. 5-7 cards. Clarity
-              on your heart&apos;s path within 24 hours.
-            </p>
-            <Link
-              href="/readings/heart-compass"
-              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline md:mt-4 md:text-sm"
-            >
-              Learn More
-              <ArrowRight size={12} className="md:h-3.5 md:w-3.5" />
-            </Link>
-          </div>
-
-          {/* The Deep Dive */}
-          <div className="rounded-xl border border-border bg-background p-5 transition-shadow hover:shadow-lg md:p-6">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary md:mb-4 md:h-12 md:w-12">
-              <Compass size={20} className="md:h-6 md:w-6" />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground md:text-xl">
-              The Deep Dive
-            </h3>
-            <p className="mt-1 text-xl font-bold text-primary md:text-2xl">
-              $44.44
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground md:text-sm">
-              4-6 related questions. 10-12 cards across 2-3 spreads. Complete
-              clarity within 48 hours.
-            </p>
-            <Link
-              href="/readings/deep-dive"
-              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline md:mt-4 md:text-sm"
-            >
-              Learn More
-              <ArrowRight size={12} className="md:h-3.5 md:w-3.5" />
-            </Link>
-          </div>
+          {READINGS_LIST.slice(0, 3).map((reading) => {
+            const Icon = reading.icon;
+            return (
+              <div
+                key={reading.slug}
+                className="flex flex-col justify-between rounded-xl border border-border bg-background p-5 transition-shadow hover:shadow-lg md:p-6"
+              >
+                <div>
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary md:mb-4 md:h-12 md:w-12">
+                    <Icon size={20} className="md:h-6 md:w-6" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground md:text-xl">
+                    {reading.name}
+                  </h3>
+                  <p className="mt-1 text-xl font-bold text-primary md:text-2xl">
+                    {reading.priceFormatted}
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground md:text-sm">
+                    {reading.shortDescription}
+                  </p>
+                </div>
+                <Link
+                  href={`/readings/${reading.slug}`}
+                  className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline md:text-sm"
+                >
+                  Learn More
+                  <ArrowRight size={12} className="md:h-3.5 md:w-3.5" />
+                </Link>
+              </div>
+            );
+          })}
         </div>
 
         {/* VIP Session - Premium Option */}
-        <div className="mt-6 rounded-xl border-2 border-primary/30 bg-linear-to-r from-primary/5 to-transparent p-5 md:mt-8 md:p-6 lg:p-8">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <div className="flex items-center gap-3 md:gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground md:h-12 md:w-12">
-                <Crown size={20} className="md:h-6 md:w-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-foreground md:text-xl">
-                  The VIP Session
-                </h3>
-                <p className="text-xs text-muted-foreground md:text-sm">
-                  Leave no stone unturned. 60-90 minute live session. Ask
-                  anything. Receive everything. Written summary included.
-                </p>
+        {(() => {
+          const vip = READINGS_CATALOG["vip-session"];
+          const VipIcon = vip.icon;
+          return (
+            <div className="mt-6 rounded-xl border-2 border-primary/30 bg-linear-to-r from-primary/5 to-transparent p-5 md:mt-8 md:p-6 lg:p-8">
+              <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground md:h-12 md:w-12">
+                    <VipIcon size={20} className="md:h-6 md:w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground md:text-xl">
+                      {vip.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground md:text-sm">
+                      {vip.shortDescription}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 md:gap-4 shrink-0">
+                  <p className="text-xl font-bold text-primary md:text-2xl">
+                    {vip.priceFormatted}
+                  </p>
+                  <Link
+                    href={`/readings/${vip.slug}`}
+                    className="rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:px-5 md:py-2 md:text-sm"
+                  >
+                    Learn More
+                  </Link>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 md:gap-4">
-              <p className="text-xl font-bold text-primary md:text-2xl">
-                $77.77
-              </p>
-              <Link
-                href="/readings/vip-session"
-                className="rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:px-5 md:py-2 md:text-sm"
-              >
-                Learn More
-              </Link>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
       </section>
 
       {/* Testimonials Section */}

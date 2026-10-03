@@ -5,9 +5,10 @@ import {
   MessageSquare,
   Mail,
   ArrowRight,
-  Video,
   Headphones,
+  Video,
 } from "lucide-react";
+import { READINGS_LIST } from "@/lib/readings";
 
 export default function HowItWorksPage() {
   const steps = [
@@ -30,7 +31,7 @@ export default function HowItWorksPage() {
       icon: MessageSquare,
       title: "Schedule (If Applicable)",
       description:
-        "If you chose a live session (The VIP Session or Deep Dive video call), you'll select a date and time that works for you. All times are in EST. You'll receive a Google Meet link in your confirmation email.",
+        "If you chose a live session (The VIP Session or Deep Dive video call), you'll select a date and time that works for you via our live calendar in your own local timezone. You'll receive a Google Meet link in your confirmation email.",
     },
     {
       number: 4,
@@ -38,45 +39,6 @@ export default function HowItWorksPage() {
       title: "Complete Payment & Receive",
       description:
         "Complete your secure payment via PayPal. For asynchronous readings (The Glimpse, Heart Compass, Deep Dive written report), you'll receive your reading within the promised timeframe. For live sessions, you'll join your scheduled video call and receive a written summary afterward.",
-    },
-  ];
-
-  const readingDetails = [
-    {
-      name: "The Glimpse",
-      price: "$11.11",
-      questions: "2 questions",
-      cards: "5 cards",
-      format: "Voice note",
-      delivery: "24-48 hours",
-      icon: Headphones,
-    },
-    {
-      name: "The Heart Compass",
-      price: "$22.22",
-      questions: "3-4 related questions",
-      cards: "5-7 cards",
-      format: "Voice note",
-      delivery: "24 hours",
-      icon: Headphones,
-    },
-    {
-      name: "The Deep Dive",
-      price: "$44.44",
-      questions: "4-6 related questions",
-      cards: "10-12 cards across 2-3 spreads",
-      format: "Video call or written report",
-      delivery: "48 hours",
-      icon: Video,
-    },
-    {
-      name: "The VIP Session",
-      price: "$77.77",
-      questions: "Unlimited",
-      cards: "Multiple decks, intuitive pulls",
-      format: "Live video call only",
-      delivery: "Scheduled (60-90 min)",
-      icon: Video,
     },
   ];
 
@@ -141,11 +103,11 @@ export default function HowItWorksPage() {
 
         {/* Mobile: Card View */}
         <div className="mt-4 space-y-3 md:hidden">
-          {readingDetails.map((reading) => {
-            const Icon = reading.icon;
+          {READINGS_LIST.map((reading) => {
+            const Icon = reading.formatIcon;
             return (
               <div
-                key={reading.name}
+                key={reading.slug}
                 className="rounded-lg border border-border bg-muted/20 p-3"
               >
                 <div className="flex items-center gap-2 border-b border-border pb-2">
@@ -154,7 +116,7 @@ export default function HowItWorksPage() {
                     {reading.name}
                   </span>
                   <span className="ml-auto text-sm font-semibold text-primary">
-                    {reading.price}
+                    {reading.priceFormatted}
                   </span>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
@@ -165,7 +127,7 @@ export default function HowItWorksPage() {
                   <span className="text-muted-foreground">Format:</span>
                   <span className="text-foreground">{reading.format}</span>
                   <span className="text-muted-foreground">Delivery:</span>
-                  <span className="text-foreground">{reading.delivery}</span>
+                  <span className="text-foreground">{reading.deliveryTime}</span>
                 </div>
               </div>
             );
@@ -198,13 +160,13 @@ export default function HowItWorksPage() {
               </tr>
             </thead>
             <tbody>
-              {readingDetails.map((reading, idx) => {
-                const Icon = reading.icon;
+              {READINGS_LIST.map((reading, idx) => {
+                const Icon = reading.formatIcon;
                 return (
                   <tr
-                    key={reading.name}
+                    key={reading.slug}
                     className={
-                      idx < readingDetails.length - 1
+                      idx < READINGS_LIST.length - 1
                         ? "border-b border-border/50"
                         : ""
                     }
@@ -217,8 +179,8 @@ export default function HowItWorksPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-foreground">
-                      {reading.price}
+                    <td className="px-3 py-3 font-semibold text-foreground">
+                      {reading.priceFormatted}
                     </td>
                     <td className="px-3 py-3 text-muted-foreground">
                       {reading.questions}
@@ -230,7 +192,7 @@ export default function HowItWorksPage() {
                       {reading.format}
                     </td>
                     <td className="px-3 py-3 text-muted-foreground">
-                      {reading.delivery}
+                      {reading.deliveryTime}
                     </td>
                   </tr>
                 );
