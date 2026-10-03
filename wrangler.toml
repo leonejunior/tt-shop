@@ -1,4 +1,4 @@
-name = "karmic-apothecary"
+name = "karmic"
 main = ".open-next/worker.js"
 compatibility_date = "2026-10-02"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
@@ -9,7 +9,7 @@ binding = "ASSETS"
 
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
-service = "karmic-apothecary"
+service = "karmic"
 
 [vars]
 # PayPal (public client ID is safe to commit)
@@ -24,7 +24,7 @@ CALENDLY_URL = "https://calendly.com/karmicapothecary/new-meeting"
 NEXT_PUBLIC_CALENDLY_URL = "https://calendly.com/karmicapothecary/new-meeting"
 
 # App URL: your live Cloudflare Workers URL (update if you add a custom domain)
-NEXT_PUBLIC_APP_URL = "https://karmic-apothecary.sierraleonejunior.workers.dev"
+NEXT_PUBLIC_APP_URL = "https://karmic.apothecary-app.workers.dev"
 
 [[d1_databases]]
 binding = "DB"
