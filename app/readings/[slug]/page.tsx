@@ -423,7 +423,7 @@ export default async function ReadingPage({
                 <ArrowLeft size={16} className="rotate-180" />
               </Link>
               <p className="mt-3 text-xs text-muted-foreground">
-                Secure payment via Stripe or PayPal
+                Secure payment via PayPal
               </p>
             </div>
           </div>

@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
           <ul className="mt-2 list-inside list-disc space-y-1 pl-2">
             <li>Your name and email address</li>
             <li>
-              Your payment information (processed securely via Stripe/PayPal)
+              Your payment information (processed securely via PayPal)
             </li>
             <li>Your question(s) for the reading</li>
             <li>Any additional context you choose to share</li>
@@ -46,8 +46,8 @@ export default function PrivacyPolicyPage() {
             Data Security
           </h2>
           <p>
-            All payment transactions are processed through Stripe or PayPal,
-            which use industry-standard encryption. I do not store your payment
+            All payment transactions are processed through PayPal,
+            which uses industry-standard encryption. I do not store your payment
             details on this website.
           </p>
         </section>
