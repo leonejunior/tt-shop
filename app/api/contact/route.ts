@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { storeContactSubmission, logEmailAudit } from "@/lib/db";
+import {
+  getClientIp,
+  checkRateLimit,
+  isHoneypotTriggered,
+  verifyTurnstileToken,
+} from "@/lib/rate-limit";
 
 interface ContactFormData {
   name: string;
@@ -254,11 +260,46 @@ function generateAutoReplyHTML(name: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { name, email, message } = (await request.json()) as {
-      name?: string;
-      email?: string;
-      message?: string;
-    };
+    const ip = getClientIp(request);
+
+    // 1. IP Rate Limiting (max 5 submissions per 10 minutes)
+    const rateCheck = await checkRateLimit("contact", ip, {
+      limit: 5,
+      windowSeconds: 600,
+    });
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: `Too many messages sent. Please wait ${rateCheck.resetInSeconds} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.resetInSeconds),
+          },
+        },
+      );
+    }
+
+    const body = ((await request.json()) || {}) as Record<string, any>;
+
+    // 2. Honeypot Bot Trap: decoy fields filled by scrapers/bots
+    if (isHoneypotTriggered(body)) {
+      // Silently succeed without sending emails or quota consumption
+      return NextResponse.json({ success: true });
+    }
+
+    // 3. Optional Cloudflare Turnstile Verification
+    const turnstileResult = await verifyTurnstileToken(body.turnstileToken, ip);
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: turnstileResult.message || "Bot verification failed" },
+        { status: 400 },
+      );
+    }
+
+    const { name, email, message } = body;
 
     // Validate required fields
     if (!name || !email || !message) {

@@ -7,9 +7,32 @@ import {
 } from "@/lib/email";
 import { READINGS_CATALOG, isValidReadingSlug } from "@/lib/readings";
 import { storeConfirmedOrder, logEmailAudit } from "@/lib/db";
+import { getClientIp, checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request);
+
+    // Rate limit: 10 capture attempts per 10 minutes per IP
+    const rateCheck = await checkRateLimit("paypal-capture", ip, {
+      limit: 10,
+      windowSeconds: 600,
+    });
+
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: `Too many payment capture attempts. Please wait ${rateCheck.resetInSeconds} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateCheck.resetInSeconds),
+          },
+        },
+      );
+    }
+
     const { orderId, readingSlug, bookingDetails } = (await request.json()) as {
       orderId?: string;
       readingSlug?: string;

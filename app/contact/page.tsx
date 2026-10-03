@@ -111,6 +111,20 @@ export default function ContactPage() {
                 {error}
               </div>
             )}
+            {/* Honeypot field for bot detection (invisible to real users) */}
+            <div className="hidden" aria-hidden="true">
+              <label htmlFor="website">Website</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={(formState as any).website || ""}
+                onChange={handleChange}
+              />
+            </div>
+
             <div>
               <label
                 htmlFor="name"
