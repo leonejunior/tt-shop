@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Loader2,
   ShieldCheck,
+  X,
+  Info,
 } from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { getReadingBySlug } from "@/lib/readings";
@@ -54,7 +56,11 @@ function PaymentPageContent() {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState<0 | 1 | 2>(0);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [notice, setNotice] = useState<{ message: string; type: "error" | "info" } | null>(null);
+
+  const showError = (message: string) => setNotice({ message, type: "error" });
+  const showInfo = (message: string) => setNotice({ message, type: "info" });
+  const clearNotice = () => setNotice(null);
 
   if (!bookingDetails) {
     router.push(`/book?reading=${readingSlug ?? "the-glimpse"}`);
@@ -297,11 +303,37 @@ function PaymentPageContent() {
                     : `Delivery within ${verifiedReading.deliveryTime}`}
                 </p>
 
-                {/* Inline Error Message */}
-                {errorMessage && (
-                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-left text-xs text-destructive">
-                    <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                    <span>{errorMessage}</span>
+                {/* Inline Status / Error / Cancellation Banner */}
+                {notice && (
+                  <div
+                    role="alert"
+                    className={`mt-4 flex items-start gap-2.5 rounded-xl border p-3.5 text-left text-xs transition-all ${
+                      notice.type === "error"
+                        ? "border-destructive/30 bg-destructive/10 text-destructive"
+                        : "border-primary/30 bg-primary/10 text-foreground"
+                    }`}
+                  >
+                    {notice.type === "error" ? (
+                      <AlertCircle size={16} className="mt-0.5 shrink-0 text-destructive" />
+                    ) : (
+                      <Info size={16} className="mt-0.5 shrink-0 text-primary" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold">
+                        {notice.type === "error" ? "Payment Notice" : "Checkout Update"}
+                      </p>
+                      <p className="mt-0.5 leading-relaxed opacity-90">
+                        {notice.message}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearNotice}
+                      className="shrink-0 rounded p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none"
+                      aria-label="Dismiss notice"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
                 )}
 
@@ -318,7 +350,7 @@ function PaymentPageContent() {
                         }}
                         disabled={isProcessing}
                         createOrder={async () => {
-                          setErrorMessage("");
+                          clearNotice();
                           try {
                             const res = await fetch("/api/paypal/create-order", {
                               method: "POST",
@@ -342,7 +374,7 @@ function PaymentPageContent() {
                               err instanceof Error
                                 ? err.message
                                 : "Unable to initiate payment.";
-                            setErrorMessage(msg);
+                            showError(msg);
                             throw err;
                           }
                         }}
@@ -355,7 +387,7 @@ function PaymentPageContent() {
 
                           setIsProcessing(true);
                           setProcessingStep(0); // "Verifying payment with PayPal"
-                          setErrorMessage("");
+                          clearNotice();
 
                           try {
                             const res = await fetch("/api/paypal/capture-order", {
@@ -417,20 +449,22 @@ function PaymentPageContent() {
                               err instanceof Error
                                 ? err.message
                                 : "Payment verification failed. Please contact support.";
-                            setErrorMessage(msg);
+                            showError(msg);
                             setIsProcessing(false);
                             setProcessingStep(0);
                           }
                         }}
                         onError={(err) => {
                           console.error("PayPal error:", err);
-                          setErrorMessage(
-                            "PayPal encountered an error. Please try again.",
+                          showError(
+                            "PayPal encountered a temporary error. Your account was not charged. Please try again or use a different payment card.",
                           );
                           setIsProcessing(false);
                         }}
                         onCancel={() => {
-                          setErrorMessage("Payment was cancelled.");
+                          showInfo(
+                            "Payment was cancelled. Your account was not charged. You can click PayPal to complete your order whenever you're ready.",
+                          );
                           setIsProcessing(false);
                         }}
                       />
