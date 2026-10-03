@@ -23,9 +23,8 @@ ADMIN_EMAIL = "1sierra.duck@gmail.com"
 CALENDLY_URL = "https://calendly.com/karmicapothecary/new-meeting"
 NEXT_PUBLIC_CALENDLY_URL = "https://calendly.com/karmicapothecary/new-meeting"
 
-# App URL: update to your real Cloudflare Pages domain before deploying
-# e.g. "https://karmic-apothecary.pages.dev" or your custom domain
-NEXT_PUBLIC_APP_URL = "https://karmic-apothecary.pages.dev"
+# App URL: your live Cloudflare Workers URL (update if you add a custom domain)
+NEXT_PUBLIC_APP_URL = "https://karmic-apothecary.sierraleonejunior.workers.dev"
 
 [[d1_databases]]
 binding = "DB"
