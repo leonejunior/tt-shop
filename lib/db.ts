@@ -293,3 +293,98 @@ export async function getOrderByTransactionId(
 
   return row ?? null;
 }
+
+/**
+ * Get all active/pending orders awaiting fulfillment, sorted by created_at ASC (oldest/most urgent first)
+ */
+export async function getPendingOrders(): Promise<
+  (OrderRecord & { customer_name: string; customer_email: string; transaction_id: string })[]
+> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const { results } = await db
+    .prepare(
+      `SELECT o.*, c.name as customer_name, c.email as customer_email, p.provider_capture_id as transaction_id
+       FROM orders o
+       JOIN customers c ON o.customer_id = c.id
+       LEFT JOIN payments p ON p.order_id = o.id
+       WHERE o.status IN ('confirmed', 'in_progress')
+       ORDER BY o.created_at ASC`,
+    )
+    .all<OrderRecord & { customer_name: string; customer_email: string; transaction_id: string }>();
+
+  return results || [];
+}
+
+/**
+ * Retrieve the full question and reading history for a customer
+ */
+export async function getCustomerOrderHistory(
+  email: string,
+): Promise<(OrderRecord & { transaction_id: string })[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  const { results } = await db
+    .prepare(
+      `SELECT o.*, p.provider_capture_id as transaction_id
+       FROM orders o
+       JOIN customers c ON o.customer_id = c.id
+       LEFT JOIN payments p ON p.order_id = o.id
+       WHERE c.email = ?
+       ORDER BY o.created_at DESC`,
+    )
+    .bind(email.toLowerCase())
+    .all<OrderRecord & { transaction_id: string }>();
+
+  return results || [];
+}
+
+/**
+ * Update order fulfillment status, reader private notes, or delivery URLs
+ */
+export async function updateOrderStatus({
+  orderId,
+  status,
+  readerNotes,
+  fulfillmentUrl,
+  meetingLink,
+}: {
+  orderId: string;
+  status?: "confirmed" | "in_progress" | "fulfilled" | "cancelled" | "refunded";
+  readerNotes?: string;
+  fulfillmentUrl?: string;
+  meetingLink?: string;
+}): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const now = new Date().toISOString();
+  const isFulfilled = status === "fulfilled";
+
+  await db
+    .prepare(
+      `UPDATE orders
+       SET status = COALESCE(?, status),
+           reader_notes = COALESCE(?, reader_notes),
+           fulfillment_url = COALESCE(?, fulfillment_url),
+           meeting_link = COALESCE(?, meeting_link),
+           fulfilled_at = CASE WHEN ? = 1 THEN ? ELSE fulfilled_at END,
+           updated_at = ?
+       WHERE id = ?`,
+    )
+    .bind(
+      status || null,
+      readerNotes || null,
+      fulfillmentUrl || null,
+      meetingLink || null,
+      isFulfilled ? 1 : 0,
+      now,
+      now,
+      orderId,
+    )
+    .run();
+
+  return true;
+}
