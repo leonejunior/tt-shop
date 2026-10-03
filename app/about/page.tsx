@@ -22,7 +22,7 @@ export default function AboutPage() {
         <div className="order-2 md:order-1">
           <div className="relative aspect-square overflow-hidden rounded-2xl border border-border bg-muted">
             <Image
-              src="/images/image2.png"
+              src="/images/image2.webp"
               alt="Karma - Tarot Reader"
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

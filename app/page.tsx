@@ -44,7 +44,7 @@ export default function Home() {
                 </div>
                 {/* Uncomment when you have the image: */}
                 <Image
-                  src="/images/image1.png"
+                  src="/images/image1.webp"
                   alt="Karma - Tarot Reader"
                   fill
                   sizes="(max-width: 768px) 224px, (max-width: 1024px) 320px, 384px"
@@ -210,7 +210,7 @@ export default function Home() {
               <div className="mt-3 flex items-center gap-2 md:mt-4">
                 <div className="relative h-7 w-7 overflow-hidden rounded-full bg-primary/20 md:h-8 md:w-8">
                   <Image
-                    src="/images/Sarah.jpg"
+                    src="/images/Sarah.webp"
                     alt="Sarah"
                     fill
                     sizes="(max-width: 768px) 28px, 32px"
@@ -238,7 +238,7 @@ export default function Home() {
               <div className="mt-3 flex items-center gap-2 md:mt-4">
                 <div className="relative h-7 w-7 overflow-hidden rounded-full bg-primary/20 md:h-8 md:w-8">
                   <Image
-                    src="/images/Michael.jpg"
+                    src="/images/Michael.webp"
                     alt="Michael"
                     fill
                     sizes="(max-width: 768px) 28px, 32px"
@@ -265,7 +265,7 @@ export default function Home() {
               <div className="mt-3 flex items-center gap-2 md:mt-4">
                 <div className="relative h-7 w-7 overflow-hidden rounded-full bg-primary/20 md:h-8 md:w-8">
                   <Image
-                    src="/images/Jessica.jpg"
+                    src="/images/Jessica.webp"
                     alt="Jessica"
                     fill
                     sizes="(max-width: 768px) 28px, 32px"
