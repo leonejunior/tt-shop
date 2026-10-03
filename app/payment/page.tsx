@@ -53,6 +53,7 @@ function PaymentPageContent() {
   );
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState<0 | 1 | 2>(0);
   const [errorMessage, setErrorMessage] = useState("");
 
   if (!bookingDetails) {
@@ -78,27 +79,75 @@ function PaymentPageContent() {
       }}
     >
       <main className="relative mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 md:py-12">
-        {/* Processing Overlay */}
-        {isProcessing && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-            <div className="flex max-w-md flex-col items-center rounded-2xl border border-border bg-card p-6 text-center shadow-2xl sm:p-8">
-              <div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Loader2 size={36} className="animate-spin text-primary" />
-                <Lock size={16} className="absolute text-primary" />
-              </div>
-              <h2 className="text-xl font-bold text-foreground sm:text-2xl">
-                Securing Your Booking
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Verifying your payment with PayPal and generating your official confirmation. Please keep this window open.
-              </p>
-              <div className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground/80">
-                <ShieldCheck size={14} className="text-primary" />
-                <span>256-bit encrypted checkout</span>
+        {/* ── Processing Overlay ──────────────────────────────────────────
+             Shown while capture-order API call is in flight (2-4 seconds).
+             Three animated steps prevent user from thinking nothing happened.
+             beforeunload is registered in onApprove to guard against refresh.
+        ─────────────────────────────────────────────────────────────────── */}
+        {isProcessing && (() => {
+          const steps = [
+            { icon: "🔒", label: "Verifying payment with PayPal" },
+            { icon: "📋", label: "Securing your booking" },
+            { icon: "✉️",  label: "Sending your confirmation email" },
+          ];
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md">
+              <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 text-center shadow-2xl">
+
+                {/* Pulsing icon */}
+                <div className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center">
+                  <span className="absolute inline-flex h-20 w-20 animate-ping rounded-full bg-primary/20" />
+                  <span className="absolute inline-flex h-16 w-16 animate-ping rounded-full bg-primary/10" style={{ animationDelay: "0.3s" }} />
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                    <Loader2 size={28} className="animate-spin text-primary" />
+                  </div>
+                </div>
+
+                <h2 className="text-xl font-bold text-foreground">Processing Payment</h2>
+                <p className="mt-1 text-xs text-amber-600 font-medium">
+                  ⚠️ Please don&apos;t close, refresh, or navigate away
+                </p>
+
+                {/* Step indicators */}
+                <div className="mt-6 space-y-3 text-left">
+                  {steps.map((step, i) => {
+                    const done   = processingStep > i;
+                    const active = processingStep === i;
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-500 ${
+                          active  ? "bg-primary/10 text-foreground font-medium" :
+                          done    ? "opacity-60 text-muted-foreground" :
+                          "opacity-30 text-muted-foreground"
+                        }`}
+                      >
+                        <span className="shrink-0 text-base">
+                          {done   ? "✅" :
+                           active ? step.icon :
+                                    "⬜"}
+                        </span>
+                        <span className="flex-1">{step.label}</span>
+                        {active && (
+                          <Loader2 size={14} className="animate-spin shrink-0 text-primary" />
+                        )}
+                        {done && (
+                          <CheckCircle2 size={14} className="shrink-0 text-green-500" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Security badge */}
+                <div className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground/70">
+                  <ShieldCheck size={13} className="text-primary" />
+                  <span>256-bit SSL encrypted checkout</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         <Link
           href={
@@ -106,7 +155,14 @@ function PaymentPageContent() {
               ? `/scheduling?reading=${readingSlug}`
               : `/book?reading=${readingSlug}`
           }
-          className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary sm:mb-6"
+          aria-disabled={isProcessing}
+          tabIndex={isProcessing ? -1 : 0}
+          onClick={(e) => { if (isProcessing) e.preventDefault(); }}
+          className={`mb-4 inline-flex items-center gap-1 text-sm transition-colors sm:mb-6 ${
+            isProcessing
+              ? "pointer-events-none text-muted-foreground/30"
+              : "text-muted-foreground hover:text-primary"
+          }`}
         >
           <ArrowLeft size={16} />
           Back
@@ -126,33 +182,13 @@ function PaymentPageContent() {
           </div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="mb-6 flex items-center justify-between sm:mb-8">
-          <div className="flex flex-1 items-center">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground sm:h-8 sm:w-8 sm:text-sm">
-              1
-            </div>
-            <div className="h-px flex-1 bg-primary" />
-          </div>
-          {hasSchedule && (
-            <div className="flex flex-1 items-center">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground sm:h-8 sm:w-8 sm:text-sm">
-                2
-              </div>
-              <div className="h-px flex-1 bg-primary" />
-            </div>
-          )}
-          <div className="flex flex-1 items-center">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground sm:h-8 sm:w-8 sm:text-sm">
-              {hasSchedule ? 3 : 2}
-            </div>
-            <div className="h-px flex-1 bg-border" />
-          </div>
-          <div className="flex flex-1 items-center">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground sm:h-8 sm:w-8 sm:text-sm">
-              {hasSchedule ? 4 : 3}
-            </div>
-          </div>
+        {/* Progress Steps (always 3: Details → Payment → Confirmation) */}
+        <div className="mb-6 flex items-center sm:mb-8">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground sm:h-8 sm:w-8 sm:text-sm">1</div>
+          <div className="h-px flex-1 bg-primary" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground sm:h-8 sm:w-8 sm:text-sm">2</div>
+          <div className="h-px flex-1 bg-border" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground sm:h-8 sm:w-8 sm:text-sm">3</div>
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
@@ -311,8 +347,16 @@ function PaymentPageContent() {
                           }
                         }}
                         onApprove={async (data) => {
+                          // Guard against refresh/close during the critical payment window
+                          const handleUnload = (e: BeforeUnloadEvent) => {
+                            e.preventDefault();
+                          };
+                          window.addEventListener("beforeunload", handleUnload);
+
                           setIsProcessing(true);
+                          setProcessingStep(0); // "Verifying payment with PayPal"
                           setErrorMessage("");
+
                           try {
                             const res = await fetch("/api/paypal/capture-order", {
                               method: "POST",
@@ -329,6 +373,8 @@ function PaymentPageContent() {
                               }),
                             });
 
+                            setProcessingStep(1); // "Securing your booking"
+
                             const captureResult = (await res.json()) as {
                               success?: boolean;
                               error?: string;
@@ -339,6 +385,8 @@ function PaymentPageContent() {
                                 captureResult.error || "Payment verification failed",
                               );
                             }
+
+                            setProcessingStep(2); // "Sending your confirmation email"
 
                             // Save confirmed booking in session storage for the confirmation receipt
                             sessionStorage.setItem(
@@ -355,10 +403,15 @@ function PaymentPageContent() {
                               }),
                             );
 
+                            // Brief pause so the user sees the final step complete
+                            await new Promise((r) => setTimeout(r, 700));
+
+                            window.removeEventListener("beforeunload", handleUnload);
                             router.push(
                               `/confirmation?reading=${verifiedReading.slug}&txn=${captureResult.transactionId}`,
                             );
                           } catch (err) {
+                            window.removeEventListener("beforeunload", handleUnload);
                             console.error("Payment capture error:", err);
                             const msg =
                               err instanceof Error
@@ -366,6 +419,7 @@ function PaymentPageContent() {
                                 : "Payment verification failed. Please contact support.";
                             setErrorMessage(msg);
                             setIsProcessing(false);
+                            setProcessingStep(0);
                           }
                         }}
                         onError={(err) => {
