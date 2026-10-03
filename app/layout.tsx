@@ -15,6 +15,15 @@ export const metadata: Metadata = {
   title: "Karma's Apothecary | Tarot Readings for Clarity & Healing",
   description:
     "Intuitive tarot readings for love, life, and everything in between. Book a personal reading today and find the clarity you've been searching for.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
