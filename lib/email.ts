@@ -13,11 +13,30 @@ interface BookingDetails {
   transactionId?: string;
 }
 
+export function escapeHtml(unsafe: string | null | undefined): string {
+  if (!unsafe) return "";
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // Generate HTML email template for customer
 export function generateCustomerEmailHTML(booking: BookingDetails): string {
   const currentYear = new Date().getFullYear();
   const isScheduled =
     booking.schedule !== undefined && booking.schedule !== null;
+
+  const safeName = escapeHtml(booking.name);
+  const safeReadingName = escapeHtml(booking.readingName);
+  const safeQuestion = escapeHtml(booking.question);
+  const safeTransactionId = escapeHtml(booking.transactionId);
+  const safeDeliveryTime = escapeHtml(booking.deliveryTime);
+  const safeFormattedDate = escapeHtml(booking.schedule?.formattedDate);
+  const safeFormattedTime = escapeHtml(booking.schedule?.formattedTime);
+  const safePreferredFormat = escapeHtml(booking.preferredFormat);
 
   return `
 <!DOCTYPE html>
@@ -170,17 +189,17 @@ body {
 
 <div class="content">
 <div class="greeting">
-Hi ${booking.name},
+Hi ${safeName},
 </div>
 
 <div class="message">
-Thank you for booking a reading with me. Your ${booking.readingName} is confirmed and I'm honored to be part of your journey.
+Thank you for booking a reading with me. Your ${safeReadingName} is confirmed and I'm honored to be part of your journey.
 </div>
 
 <div class="details">
 <div class="details-row">
 <span class="details-label">📖 Reading:</span>
-<span class="details-value">${booking.readingName}</span>
+<span class="details-value">${safeReadingName}</span>
 </div>
 <div class="details-row">
 <span class="details-label">💰 Amount Paid:</span>
@@ -191,7 +210,7 @@ ${
     ? `
 <div class="details-row">
 <span class="details-label">🆔 Transaction ID:</span>
-<span class="details-value">${booking.transactionId}</span>
+<span class="details-value">${safeTransactionId}</span>
 </div>
 `
     : ""
@@ -201,17 +220,17 @@ ${
     ? `
 <div class="details-row">
 <span class="details-label">📅 Date:</span>
-<span class="details-value">${booking.schedule!.formattedDate}</span>
+<span class="details-value">${safeFormattedDate}</span>
 </div>
 <div class="details-row">
 <span class="details-label">⏰ Time:</span>
-<span class="details-value">${booking.schedule!.formattedTime} EST</span>
+<span class="details-value">${safeFormattedTime} EST</span>
 </div>
 `
     : `
 <div class="details-row">
 <span class="details-label">⏱️ Delivery:</span>
-<span class="details-value">Within ${booking.deliveryTime}</span>
+<span class="details-value">Within ${safeDeliveryTime}</span>
 </div>
 `
 }
@@ -232,7 +251,7 @@ ${
 <p>⏰ If you need to reschedule, reply to this email at least 12 hours in advance.</p>
 `
     : `
-<p>🎧 I'll begin working on your reading shortly and will send it to this email within ${booking.deliveryTime}.</p>
+<p>🎧 I'll begin working on your reading shortly and will send it to this email within ${safeDeliveryTime}.</p>
 <p>📝 Your reading will be delivered as a private voice note or written report.</p>
 <p>💬 If you have any follow-up questions, simply reply to this email.</p>
 `
@@ -241,7 +260,7 @@ ${
 
 <div class="question-box">
 <strong>❓ Your Question:</strong>
-<p style="margin-top: 8px; font-size: 14px; color: #4b5563;">"${booking.question}"</p>
+<p style="margin-top: 8px; font-size: 14px; color: #4b5563;">"${safeQuestion}"</p>
 </div>
 
 ${
@@ -250,7 +269,7 @@ ${
 <div style="margin-top: 16px;">
 <div class="details-row">
 <span class="details-label">🎙️ Preferred Format:</span>
-<span class="details-value">${booking.preferredFormat === "video" ? "Video Call (Live Conversation)" : "Voice Note (Recorded)"}</span>
+<span class="details-value">${safePreferredFormat === "video" ? "Video Call (Live Conversation)" : "Voice Note (Recorded)"}</span>
 </div>
 </div>
 `
@@ -282,6 +301,16 @@ With love,<br>Karma ✨
 export function generateAdminEmailHTML(booking: BookingDetails): string {
   const isScheduled =
     booking.schedule !== undefined && booking.schedule !== null;
+
+  const safeName = escapeHtml(booking.name);
+  const safeReadingName = escapeHtml(booking.readingName);
+  const safeEmail = escapeHtml(booking.email);
+  const safeQuestion = escapeHtml(booking.question);
+  const safeTransactionId = escapeHtml(booking.transactionId);
+  const safeDeliveryTime = escapeHtml(booking.deliveryTime);
+  const safeFormattedDate = escapeHtml(booking.schedule?.formattedDate);
+  const safeFormattedTime = escapeHtml(booking.schedule?.formattedTime);
+  const safePreferredFormat = escapeHtml(booking.preferredFormat);
 
   return `
 <!DOCTYPE html>
@@ -383,15 +412,15 @@ body {
 <div class="details">
 <div class="row">
 <span class="label">Reading:</span>
-<span class="value">${booking.readingName}</span>
+<span class="value">${safeReadingName}</span>
 </div>
 <div class="row">
 <span class="label">Client:</span>
-<span class="value">${booking.name}</span>
+<span class="value">${safeName}</span>
 </div>
 <div class="row">
 <span class="label">Email:</span>
-<span class="value">${booking.email}</span>
+<span class="value">${safeEmail}</span>
 </div>
 <div class="row">
 <span class="label">Amount:</span>
@@ -399,20 +428,20 @@ body {
 </div>
 <div class="row">
 <span class="label">Transaction ID:</span>
-<span class="value">${booking.transactionId || "N/A"}</span>
+<span class="value">${safeTransactionId || "N/A"}</span>
 </div>
 ${
   isScheduled
     ? `
 <div class="row">
 <span class="label">Schedule:</span>
-<span class="value">${booking.schedule!.formattedDate} at ${booking.schedule!.formattedTime} EST</span>
+<span class="value">${safeFormattedDate} at ${safeFormattedTime} EST</span>
 </div>
 `
     : `
 <div class="row">
 <span class="label">Delivery:</span>
-<span class="value">Within ${booking.deliveryTime}</span>
+<span class="value">Within ${safeDeliveryTime}</span>
 </div>
 `
 }
@@ -421,14 +450,14 @@ ${
     ? `
 <div class="row">
 <span class="label">Format:</span>
-<span class="value">${booking.preferredFormat === "video" ? "Video Call" : "Voice Note"}</span>
+<span class="value">${safePreferredFormat === "video" ? "Video Call" : "Voice Note"}</span>
 </div>
 `
     : ""
 }
 <div class="question-box">
 <strong>❓ Client's Question:</strong>
-<p>"${booking.question}"</p>
+<p>"${safeQuestion}"</p>
 </div>
 </div>
 <div class="note">

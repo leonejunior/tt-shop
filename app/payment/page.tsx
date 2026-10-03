@@ -3,9 +3,17 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Lock, CheckCircle2, CreditCard } from "lucide-react";
+import {
+  ArrowLeft,
+  Lock,
+  CheckCircle2,
+  CreditCard,
+  AlertCircle,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-import type { OrderResponseBody } from "@paypal/paypal-js";
+import { getReadingBySlug } from "@/lib/readings";
 
 interface BookingDetails {
   reading: string;
@@ -45,6 +53,7 @@ function PaymentPageContent() {
   );
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   if (!bookingDetails) {
     router.push(`/book?reading=${readingSlug ?? "the-glimpse"}`);
@@ -55,51 +64,42 @@ function PaymentPageContent() {
     );
   }
 
+  // Server-verified reading package & pricing
+  const verifiedReading = getReadingBySlug(bookingDetails.reading);
   const hasSchedule = schedule !== null;
-
-  const handlePayPalSuccess = async (details: OrderResponseBody) => {
-    setIsProcessing(true);
-
-    sessionStorage.setItem(
-      "bookingConfirmation",
-      JSON.stringify({
-        ...bookingDetails,
-        schedule,
-        paymentDate: new Date().toISOString(),
-        status: "confirmed",
-        paymentMethod: "paypal",
-        transactionId: details.id,
-      }),
-    );
-
-    try {
-      const response = await fetch("/api/payment-success", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transactionId: details.id,
-          bookingDetails: { ...bookingDetails, schedule },
-        }),
-      });
-      if (!response.ok) console.error("Email sending failed");
-    } catch (error) {
-      console.error("Email sending error:", error);
-    }
-
-    router.push(`/confirmation?reading=${readingSlug}`);
-  };
-
-  console.log("PayPal Client ID:", process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID);
+  const paypalClientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
 
   return (
     <PayPalScriptProvider
       options={{
-        clientId: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!,
+        clientId: paypalClientId,
         currency: "USD",
         intent: "capture",
       }}
     >
-      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 md:py-12">
+      <main className="relative mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 md:py-12">
+        {/* Processing Overlay */}
+        {isProcessing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+            <div className="flex max-w-md flex-col items-center rounded-2xl border border-border bg-card p-6 text-center shadow-2xl sm:p-8">
+              <div className="relative mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Loader2 size={36} className="animate-spin text-primary" />
+                <Lock size={16} className="absolute text-primary" />
+              </div>
+              <h2 className="text-xl font-bold text-foreground sm:text-2xl">
+                Securing Your Booking
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Verifying your payment with PayPal and generating your official confirmation. Please keep this window open.
+              </p>
+              <div className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground/80">
+                <ShieldCheck size={14} className="text-primary" />
+                <span>256-bit encrypted checkout</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Link
           href={
             hasSchedule
@@ -165,7 +165,7 @@ function PaymentPageContent() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Reading:</span>
                   <span className="font-medium text-foreground">
-                    {bookingDetails.readingName}
+                    {verifiedReading.name}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -209,11 +209,11 @@ function PaymentPageContent() {
                   </>
                 )}
 
-                {bookingDetails.deliveryTime !== "Scheduled" && (
+                {verifiedReading.deliveryTime !== "Scheduled" && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Delivery:</span>
                     <span className="text-foreground">
-                      Within {bookingDetails.deliveryTime}
+                      Within {verifiedReading.deliveryTime}
                     </span>
                   </div>
                 )}
@@ -221,13 +221,14 @@ function PaymentPageContent() {
                 <div className="mt-2 border-t border-border pt-2 sm:mt-3 sm:pt-3">
                   <div className="flex justify-between font-semibold">
                     <span>Total:</span>
-                    <span className="text-primary">
-                      ${bookingDetails.price.toFixed(2)}
+                    <span className="text-primary font-bold">
+                      ${verifiedReading.price.toFixed(2)}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
+
             <div className="rounded-xl border border-border bg-background p-4 sm:p-6">
               <div className="flex items-center gap-3 rounded-lg bg-primary/5 p-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/20">
@@ -236,15 +237,14 @@ function PaymentPageContent() {
                 <div className="flex-1">
                   <p className="font-medium text-foreground">PayPal</p>
                   <p className="text-xs text-muted-foreground">
-                    Pay with your PayPal account or use a credit/debit card via
-                    PayPal
+                    Pay with your PayPal account or use a debit/credit card via PayPal
                   </p>
                 </div>
                 <CheckCircle2 size={20} className="text-primary" />
               </div>
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Lock size={12} />
-                <span>Secure payment processing by PayPal</span>
+                <span>Verified server-side secure payment processing</span>
               </div>
             </div>
           </div>
@@ -253,13 +253,21 @@ function PaymentPageContent() {
             <div className="sticky top-24 rounded-xl border border-border bg-background p-5 shadow-lg sm:p-6">
               <div className="text-center">
                 <p className="text-2xl font-bold text-primary sm:text-3xl">
-                  ${bookingDetails.price.toFixed(2)}
+                  ${verifiedReading.price.toFixed(2)}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                  {bookingDetails.deliveryTime === "Scheduled"
+                  {verifiedReading.deliveryTime === "Scheduled"
                     ? "Live video call session"
-                    : `Delivery within ${bookingDetails.deliveryTime}`}
+                    : `Delivery within ${verifiedReading.deliveryTime}`}
                 </p>
+
+                {/* Inline Error Message */}
+                {errorMessage && (
+                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-left text-xs text-destructive">
+                    <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
 
                 <div className="mt-4 sm:mt-6">
                   <div className="flex justify-center">
@@ -272,27 +280,97 @@ function PaymentPageContent() {
                           label: "pay",
                           height: 40,
                         }}
-                        createOrder={(_data, actions) =>
-                          actions.order.create({
-                            intent: "CAPTURE",
-                            purchase_units: [
-                              {
-                                amount: {
-                                  currency_code: "USD",
-                                  value: bookingDetails.price.toFixed(2),
+                        disabled={isProcessing}
+                        createOrder={async () => {
+                          setErrorMessage("");
+                          try {
+                            const res = await fetch("/api/paypal/create-order", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                readingSlug: verifiedReading.slug,
+                              }),
+                            });
+                            const data = await res.json();
+                            if (!res.ok || !data.orderId) {
+                              throw new Error(
+                                data.error || "Failed to initialize secure order.",
+                              );
+                            }
+                            return data.orderId;
+                          } catch (err) {
+                            const msg =
+                              err instanceof Error
+                                ? err.message
+                                : "Unable to initiate payment.";
+                            setErrorMessage(msg);
+                            throw err;
+                          }
+                        }}
+                        onApprove={async (data) => {
+                          setIsProcessing(true);
+                          setErrorMessage("");
+                          try {
+                            const res = await fetch("/api/paypal/capture-order", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                orderId: data.orderID,
+                                readingSlug: verifiedReading.slug,
+                                bookingDetails: {
+                                  ...bookingDetails,
+                                  price: verifiedReading.price,
+                                  readingName: verifiedReading.name,
+                                  schedule,
                                 },
-                                description: `${bookingDetails.readingName} - ${bookingDetails.name}`,
-                              },
-                            ],
-                          })
-                        }
-                        onApprove={async (_data, actions) => {
-                          const details = await actions.order?.capture();
-                          if (details) await handlePayPalSuccess(details);
+                              }),
+                            });
+
+                            const captureResult = await res.json();
+                            if (!res.ok || !captureResult.success) {
+                              throw new Error(
+                                captureResult.error || "Payment verification failed",
+                              );
+                            }
+
+                            // Save confirmed booking in session storage for the confirmation receipt
+                            sessionStorage.setItem(
+                              "bookingConfirmation",
+                              JSON.stringify({
+                                ...bookingDetails,
+                                price: verifiedReading.price,
+                                readingName: verifiedReading.name,
+                                schedule,
+                                paymentDate: new Date().toISOString(),
+                                status: "confirmed",
+                                paymentMethod: "paypal",
+                                transactionId: captureResult.transactionId,
+                              }),
+                            );
+
+                            router.push(
+                              `/confirmation?reading=${verifiedReading.slug}`,
+                            );
+                          } catch (err) {
+                            console.error("Payment capture error:", err);
+                            const msg =
+                              err instanceof Error
+                                ? err.message
+                                : "Payment verification failed. Please contact support.";
+                            setErrorMessage(msg);
+                            setIsProcessing(false);
+                          }
                         }}
                         onError={(err) => {
                           console.error("PayPal error:", err);
-                          alert("Payment failed. Please try again.");
+                          setErrorMessage(
+                            "PayPal encountered an error. Please try again.",
+                          );
+                          setIsProcessing(false);
+                        }}
+                        onCancel={() => {
+                          setErrorMessage("Payment was cancelled.");
+                          setIsProcessing(false);
                         }}
                       />
                     </div>
