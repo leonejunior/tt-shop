@@ -30,7 +30,6 @@ interface BookingConfirmation {
 
 function ConfirmationPageContent() {
   const searchParams = useSearchParams();
-  const readingSlug = searchParams.get("reading");
   const txn = searchParams.get("txn");
 
   const [bookingDetails, setBookingDetails] = useState<BookingConfirmation | null>(() => {
@@ -39,19 +38,19 @@ function ConfirmationPageContent() {
     return stored ? (JSON.parse(stored) as BookingConfirmation) : null;
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => !bookingDetails && Boolean(txn));
 
   // If sessionStorage is empty (e.g. page refreshed or opened in new tab), look up from Cloudflare D1
   useEffect(() => {
+    let isMounted = true;
     if (!bookingDetails && txn) {
-      setIsLoading(true);
       fetch(`/api/orders/lookup?txn=${encodeURIComponent(txn)}`)
         .then((res) => {
           if (!res.ok) throw new Error("Order not found");
-          return res.json() as Promise<any>;
+          return res.json() as Promise<{ order?: BookingConfirmation }>;
         })
-        .then((data: any) => {
-          if (data.order) {
+        .then((data) => {
+          if (isMounted && data.order) {
             setBookingDetails(data.order);
             sessionStorage.setItem("bookingConfirmation", JSON.stringify(data.order));
           }
@@ -60,9 +59,15 @@ function ConfirmationPageContent() {
           console.error("Order lookup error:", err);
         })
         .finally(() => {
-          setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+          }
         });
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [bookingDetails, txn]);
 
   if (isLoading) {

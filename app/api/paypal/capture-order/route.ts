@@ -33,10 +33,24 @@ export async function POST(request: Request) {
       );
     }
 
+    interface BookingDetailsInput {
+      name?: string;
+      email?: string;
+      question?: string;
+      preferredFormat?: string;
+      schedule?: {
+        date?: string;
+        formattedDate?: string;
+        time?: string;
+        formattedTime?: string;
+      };
+      [key: string]: unknown;
+    }
+
     const { orderId, readingSlug, bookingDetails } = (await request.json()) as {
       orderId?: string;
       readingSlug?: string;
-      bookingDetails?: any;
+      bookingDetails?: BookingDetailsInput;
     };
 
     if (!orderId || !readingSlug || !bookingDetails) {

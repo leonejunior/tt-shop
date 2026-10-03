@@ -282,7 +282,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = ((await request.json()) || {}) as Record<string, any>;
+    const body = ((await request.json()) || {}) as Record<string, unknown>;
 
     // 2. Honeypot Bot Trap: decoy fields filled by scrapers/bots
     if (isHoneypotTriggered(body)) {
@@ -291,7 +291,8 @@ export async function POST(request: Request) {
     }
 
     // 3. Optional Cloudflare Turnstile Verification
-    const turnstileResult = await verifyTurnstileToken(body.turnstileToken, ip);
+    const turnstileToken = typeof body.turnstileToken === "string" ? body.turnstileToken : undefined;
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, ip);
     if (!turnstileResult.success) {
       return NextResponse.json(
         { error: turnstileResult.message || "Bot verification failed" },

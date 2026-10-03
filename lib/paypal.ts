@@ -1,4 +1,4 @@
-import { READINGS_CATALOG, isValidReadingSlug, ReadingSlug } from "./readings";
+import { READINGS_CATALOG, isValidReadingSlug } from "./readings";
 
 interface PayPalTokenResponse {
   access_token: string;

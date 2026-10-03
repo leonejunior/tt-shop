@@ -6,13 +6,11 @@ import {
   Heart,
   Compass,
   Crown,
-  Zap,
   CheckCircle2,
   Clock,
   MessageSquare,
   Video,
   Headphones,
-  FileText,
 } from "lucide-react";
 
 // Define your reading packages data

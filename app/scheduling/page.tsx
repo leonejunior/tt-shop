@@ -99,8 +99,6 @@ function SchedulingPageContent() {
   };
 
   const isSchedulingForVIP = readingSlug === "vip-session";
-  const isSchedulingForDeepDive =
-    readingSlug === "deep-dive" && bookingDetails.preferredFormat === "video";
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">

@@ -9,6 +9,7 @@ export default function ContactPage() {
     name: "",
     email: "",
     message: "",
+    website: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -32,7 +33,7 @@ export default function ContactPage() {
       if (!response.ok) {
         let errorMessage = "Failed to send message";
         try {
-          const errorData = (await response.json()) as any;
+          const errorData = (await response.json()) as { error?: string };
           errorMessage = errorData?.error || errorMessage;
         } catch {
           const text = await response.text();
@@ -120,7 +121,7 @@ export default function ContactPage() {
                 name="website"
                 tabIndex={-1}
                 autoComplete="off"
-                value={(formState as any).website || ""}
+                value={formState.website}
                 onChange={handleChange}
               />
             </div>

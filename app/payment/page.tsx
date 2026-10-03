@@ -291,7 +291,10 @@ function PaymentPageContent() {
                                 readingSlug: verifiedReading.slug,
                               }),
                             });
-                            const data = (await res.json()) as any;
+                            const data = (await res.json()) as {
+                              orderId?: string;
+                              error?: string;
+                            };
                             if (!res.ok || !data.orderId) {
                               throw new Error(
                                 data.error || "Failed to initialize secure order.",
@@ -326,7 +329,11 @@ function PaymentPageContent() {
                               }),
                             });
 
-                            const captureResult = (await res.json()) as any;
+                            const captureResult = (await res.json()) as {
+                              success?: boolean;
+                              error?: string;
+                              transactionId?: string;
+                            };
                             if (!res.ok || !captureResult.success) {
                               throw new Error(
                                 captureResult.error || "Payment verification failed",

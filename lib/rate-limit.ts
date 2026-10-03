@@ -136,7 +136,7 @@ export async function checkRateLimit(
 /**
  * Honeypot bot detection: checks if hidden honeypot fields were filled by automated scripts
  */
-export function isHoneypotTriggered(body: Record<string, any>): boolean {
+export function isHoneypotTriggered(body: Record<string, unknown>): boolean {
   // Check hidden decoy fields that real users never see or fill
   const honeypotFields = ["website", "company", "fax", "phone_hp"];
   for (const field of honeypotFields) {

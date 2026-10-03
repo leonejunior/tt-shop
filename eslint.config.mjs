@@ -1,22 +1,19 @@
-import { FlatCompat } from "@eslint/eslintrc";
-import { defineConfig, globalIgnores } from "eslint/config";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import coreWebVitals from "eslint-config-next/core-web-vitals";
+import typescript from "eslint-config-next/typescript";
 
-const compat = new FlatCompat({
-  baseDirectory: dirname(fileURLToPath(import.meta.url)),
-});
-
-const eslintConfig = defineConfig([
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
-]);
+const eslintConfig = [
+  ...coreWebVitals,
+  ...typescript,
+  {
+    ignores: [
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+      ".open-next/**",
+      ".wrangler/**",
+    ],
+  },
+];
 
 export default eslintConfig;

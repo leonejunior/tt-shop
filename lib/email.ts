@@ -7,8 +7,10 @@ interface BookingDetails {
   preferredFormat?: string;
   deliveryTime: string;
   schedule?: {
-    formattedDate: string;
-    formattedTime: string;
+    formattedDate?: string;
+    formattedTime?: string;
+    date?: string;
+    time?: string;
   };
   transactionId?: string;
 }

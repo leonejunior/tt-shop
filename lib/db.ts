@@ -58,7 +58,7 @@ function generateId(prefix: string): string {
 export async function getDb(): Promise<D1Database | null> {
   try {
     const { env } = await getCloudflareContext({ async: true });
-    return (env as any)?.DB ?? null;
+    return ((env as Record<string, unknown>)?.DB as D1Database | undefined) ?? null;
   } catch {
     // If running in local Node or build time without worker runtime
     return null;
