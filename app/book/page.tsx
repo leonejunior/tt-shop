@@ -71,7 +71,7 @@ const readingsData: Record<ReadingSlug, ReadingData> = {
     deliveryTime: "Scheduled",
     questions: "Unlimited",
     questionHint:
-      "Ask anything! You'll get a 60-90 minute live video session. I'll contact you within 24 hours to schedule.",
+      "Ask anything! After payment you'll receive a Calendly link to pick your preferred session date and time.",
     showFormatSelector: false,
   },
 };
@@ -121,28 +121,10 @@ function BookPageContent() {
       }),
     );
 
-    // For VIP Session - always go to scheduling (live video call)
-    if (readingSlug === "vip-session") {
-      router.push(`/scheduling?reading=${readingSlug}`);
-    }
-    // For Deep Dive with video call - go to scheduling
-    else if (
-      readingSlug === "deep-dive" &&
-      formData.preferredFormat === "video"
-    ) {
-      router.push(`/scheduling?reading=${readingSlug}`);
-    }
-    // For Deep Dive with written report - go directly to payment (no scheduling)
-    else if (
-      readingSlug === "deep-dive" &&
-      formData.preferredFormat === "written"
-    ) {
-      router.push(`/payment?reading=${readingSlug}`);
-    }
-    // For all other readings (The Glimpse, Heart Compass) - go directly to payment
-    else {
-      router.push(`/payment?reading=${readingSlug}`);
-    }
+    // All readings go directly to payment.
+    // VIP and Deep Dive (video) clients receive a Calendly scheduling link
+    // in their post-payment confirmation email to book their real session time.
+    router.push(`/payment?reading=${readingSlug}`);
   };
 
   const isFormValid = () => {

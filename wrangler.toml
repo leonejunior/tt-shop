@@ -19,8 +19,9 @@ PAYPAL_MODE = "live"
 # Email: who gets admin/owner alerts
 ADMIN_EMAIL = "1sierra.duck@gmail.com"
 
-# Scheduling: Calendly link embedded in VIP emails
+# Scheduling: Calendly link embedded in VIP emails and scheduling redirect page
 CALENDLY_URL = "https://calendly.com/karmicapothecary/new-meeting"
+NEXT_PUBLIC_CALENDLY_URL = "https://calendly.com/karmicapothecary/new-meeting"
 
 # App URL: update to your real Cloudflare Pages domain before deploying
 # e.g. "https://karmic-apothecary.pages.dev" or your custom domain

@@ -187,6 +187,10 @@ ${body}
 export function generateCustomerConfirmationHTML(booking: BookingDetails): string {
   const year = new Date().getFullYear();
   const isVip = booking.readingName.toLowerCase().includes("vip");
+  const isDeepDiveVideo =
+    booking.readingName.toLowerCase().includes("deep dive") &&
+    booking.preferredFormat === "video";
+  const needsScheduling = isVip || isDeepDiveVideo;
   const isScheduled = !!booking.schedule;
   const calendlyUrl = process.env.CALENDLY_URL || "https://calendly.com/karmicapothecary/new-meeting";
 
@@ -221,17 +225,18 @@ export function generateCustomerConfirmationHTML(booking: BookingDetails): strin
 
   // "What happens next" varies by type
   let nextSteps: string;
-  if (isVip) {
+  if (needsScheduling) {
+    const sessionLabel = isVip ? "VIP Session" : "Deep Dive Video Call";
     nextSteps = `
       <div class="info-box">
         <h3>🌟 What happens next?</h3>
-        <p>📅 <strong>Schedule your session below</strong> — pick a date and time that works for you.</p>
+        <p>📅 <strong>Schedule your ${sessionLabel} below</strong> — pick a date and time that works for you.</p>
         <p>📝 Come prepared with your questions. We'll cover everything in our live call.</p>
-        <p>🔗 A Google Meet link will be in your calendar invite once you book.</p>
+        <p>🔗 A Google Meet link will be in your Calendly calendar invite automatically.</p>
         <p>⚡ If you need to reschedule, please do so at least 12 hours in advance via Calendly.</p>
       </div>
       <div style="text-align:center; margin: 24px 0;">
-        <a href="${escapeHtml(calendlyUrl)}" class="cta-btn">📅 Schedule Your VIP Session</a>
+        <a href="${escapeHtml(calendlyUrl)}" class="cta-btn">📅 Schedule Your ${sessionLabel}</a>
       </div>`;
   } else if (isScheduled) {
     nextSteps = `

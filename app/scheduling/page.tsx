@@ -1,238 +1,131 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, ChevronRight, Video } from "lucide-react";
+import { Calendar, ExternalLink, ArrowLeft } from "lucide-react";
 
-interface BookingDetails {
-  reading: string;
-  readingName: string;
-  price: number;
-  name: string;
-  email: string;
-  question: string;
-  preferredFormat: string;
-  deliveryTime: string;
-}
+const CALENDLY_URL =
+  process.env.NEXT_PUBLIC_CALENDLY_URL ||
+  "https://calendly.com/karmicapothecary/new-meeting";
 
-interface TimeSlot {
-  value: string;
-  display: string;
-}
-
-interface DateOption {
-  value: string;
-  display: string;
-}
-
-const generateTimeSlots = (): TimeSlot[] => {
-  const slots: TimeSlot[] = [];
-  for (let hour = 9; hour <= 17; hour++) {
-    const period = hour >= 12 ? "PM" : "AM";
-    const displayHour = hour > 12 ? hour - 12 : hour;
-    slots.push({ value: `${hour}:00`, display: `${displayHour}:00 ${period}` });
-  }
-  return slots;
-};
-
-const generateDates = (): DateOption[] => {
-  const dates: DateOption[] = [];
-  const today = new Date();
-  for (let i = 1; i <= 30; i++) {
-    const date = new Date();
-    date.setDate(today.getDate() + i);
-    dates.push({
-      value: date.toISOString().split("T")[0],
-      display: date.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      }),
-    });
-  }
-  return dates;
-};
-
-const timeSlots = generateTimeSlots();
-
+/**
+ * /scheduling — Calendly redirect page
+ *
+ * This page is reached when a client wants to schedule a live session.
+ * Rather than showing fake pre-generated time slots (which caused timezone
+ * confusion and double-booking), we redirect to Calendly which handles:
+ *   ✅ Real availability (you control it in Calendly)
+ *   ✅ Automatic timezone conversion for every visitor
+ *   ✅ Double-booking prevention
+ *   ✅ Calendar invites & reminders
+ *
+ * For clients arriving from the normal checkout flow, scheduling now happens
+ * AFTER payment — the Calendly link is in their confirmation email.
+ * This page exists for direct links, old bookmarks, or manual scheduling.
+ */
 function SchedulingPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const readingSlug = searchParams.get("reading");
+  const reading = searchParams.get("reading") ?? "";
 
-  const [bookingDetails] = useState<BookingDetails | null>(() => {
-    if (typeof window === "undefined") return null;
-    const stored = sessionStorage.getItem("bookingDetails");
-    if (!stored) return null;
-    return JSON.parse(stored) as BookingDetails;
-  });
+  // Auto-redirect after a short delay so the user can read the message
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.location.href = CALENDLY_URL;
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
-
-  const dates = generateDates();
-
-  if (!bookingDetails) {
-    router.push(`/book?reading=${readingSlug ?? "the-glimpse"}`);
-    return (
-      <main className="mx-auto max-w-3xl px-4 py-12 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Redirecting...</h1>
-      </main>
-    );
-  }
-
-  const handleContinue = () => {
-    if (!selectedDate || !selectedTime) return;
-
-    sessionStorage.setItem(
-      "bookingSchedule",
-      JSON.stringify({
-        date: selectedDate,
-        time: selectedTime,
-        formattedDate: dates.find((d) => d.value === selectedDate)?.display,
-        formattedTime: timeSlots.find((t) => t.value === selectedTime)?.display,
-      }),
-    );
-
-    router.push(`/payment?reading=${readingSlug}`);
-  };
-
-  const isSchedulingForVIP = readingSlug === "vip-session";
+  const readingLabel =
+    reading === "vip-session"
+      ? "VIP Session (60–90 min)"
+      : reading === "deep-dive"
+        ? "Deep Dive Session"
+        : "Your Session";
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">
-      <Link
-        href={`/book?reading=${readingSlug}`}
-        className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary"
-      >
-        <ArrowLeft size={16} />
-        Back to details
-      </Link>
+    <main className="flex min-h-[80vh] items-center justify-center px-4 py-16">
+      <div className="w-full max-w-md text-center">
+        {/* Icon */}
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+          <Calendar size={36} className="text-primary" />
+        </div>
 
-      <div className="mb-8 flex items-center gap-4 rounded-xl border border-border bg-background p-6 md:p-8">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Calendar size={28} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground md:text-3xl">
-            Schedule Your {isSchedulingForVIP ? "VIP" : "Deep Dive"} Session
-          </h1>
-          <p className="text-muted-foreground">
-            {bookingDetails.readingName} • Select a date and time for your live
-            video call
-          </p>
-        </div>
-      </div>
+        <h1 className="text-2xl font-bold text-foreground md:text-3xl">
+          Schedule Your {readingLabel}
+        </h1>
 
-      {/* Progress Steps */}
-      <div className="mb-8 flex items-center justify-between">
-        <div className="flex flex-1 items-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-            1
-          </div>
-          <div className="h-px flex-1 bg-primary" />
-        </div>
-        <div className="flex flex-1 items-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-            2
-          </div>
-          <div className="h-px flex-1 bg-primary" />
-        </div>
-        <div className="flex flex-1 items-center">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium text-muted-foreground">
-            3
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-border bg-background p-6 md:p-8">
-        <div className="mb-4 flex items-center gap-2">
-          <Video size={20} className="text-primary" />
-          <h2 className="text-xl font-semibold text-foreground">
-            Choose Your Time
-          </h2>
-        </div>
-        <p className="mb-6 text-sm text-muted-foreground">
-          Select a date and time for your live video call. All times are in EST.
-          You&apos;ll receive a Google Meet link in your confirmation email.
+        <p className="mt-3 text-muted-foreground">
+          You&apos;re being taken to Calendly to pick a real date and time that
+          works for you. Calendly automatically shows times in{" "}
+          <strong>your local timezone</strong> — no confusion, no double
+          bookings.
         </p>
 
-        <div className="space-y-6">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">
-              Select Date
-            </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-              {dates.map((date) => (
-                <button
-                  key={date.value}
-                  type="button"
-                  onClick={() => setSelectedDate(date.value)}
-                  className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
-                    selectedDate === date.value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-foreground hover:bg-muted"
-                  }`}
-                >
-                  {date.display}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Auto-redirect progress bar */}
+        <div className="mx-auto mt-6 h-1 w-full max-w-xs overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full bg-primary"
+            style={{
+              animation: "progress 4s linear forwards",
+            }}
+          />
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Redirecting automatically in 4 seconds…
+        </p>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">
-              Select Time
-            </label>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-              {timeSlots.map((slot) => (
-                <button
-                  key={slot.value}
-                  type="button"
-                  onClick={() => setSelectedTime(slot.value)}
-                  className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
-                    selectedTime === slot.value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Clock size={14} className="mr-1 inline" />
-                  {slot.display}
-                </button>
-              ))}
-            </div>
-          </div>
+        <style>{`
+          @keyframes progress {
+            from { width: 0% }
+            to   { width: 100% }
+          }
+        `}</style>
 
-          {selectedDate && selectedTime && (
-            <div className="mt-6 rounded-lg border border-primary/30 bg-primary/5 p-4">
-              <p className="text-sm text-foreground">
-                <span className="font-medium">
-                  Your{" "}
-                  {isSchedulingForVIP ? "VIP session" : "Deep Dive video call"}{" "}
-                  is scheduled for:
-                </span>
-                <br />
-                {dates.find((d) => d.value === selectedDate)?.display} at{" "}
-                {timeSlots.find((t) => t.value === selectedTime)?.display} EST
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                You&apos;ll receive a confirmation email with the Google Meet
-                link within 24 hours.
-                {isSchedulingForVIP &&
-                  " A written summary will be emailed within 24 hours after our session."}
-              </p>
-            </div>
-          )}
+        {/* Primary CTA */}
+        <a
+          href={CALENDLY_URL}
+          className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          <Calendar size={16} />
+          Open Calendly Now
+          <ExternalLink size={14} />
+        </a>
 
-          <button
-            onClick={handleContinue}
-            disabled={!selectedDate || !selectedTime}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Continue to Payment
-            <ChevronRight size={16} />
-          </button>
+        {/* Back link */}
+        <Link
+          href={reading ? `/book?reading=${reading}` : "/readings"}
+          className="mt-4 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-primary"
+        >
+          <ArrowLeft size={14} />
+          Go back
+        </Link>
+
+        {/* What to expect */}
+        <div className="mt-10 rounded-xl border border-border bg-card p-5 text-left">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
+            What to expect on Calendly
+          </h2>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-primary">🌍</span>
+              Times shown in <strong>your local timezone</strong> automatically
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-primary">📅</span>
+              Only <strong>real available slots</strong> are shown — no
+              double-booking possible
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-primary">📩</span>
+              You&apos;ll receive a <strong>calendar invite</strong> and reminder
+              email instantly
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-0.5 text-primary">🔗</span>
+              A <strong>Google Meet link</strong> is included in the invite
+            </li>
+          </ul>
         </div>
       </div>
     </main>
@@ -244,7 +137,7 @@ export default function SchedulingPage() {
     <Suspense
       fallback={
         <main className="mx-auto max-w-3xl px-4 py-12 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Loading...</h1>
+          <h1 className="text-2xl font-bold text-foreground">Loading…</h1>
         </main>
       }
     >
